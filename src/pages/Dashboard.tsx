@@ -18,6 +18,14 @@ interface BMSSettings {
   maxDischargeCurrent: string;
 }
 
+const generateData = (points: number) => {
+  return Array.from({ length: points }, (_, i) => ({
+    time: `${i}h`,
+    soc: Math.floor(Math.random() * (100 - 60) + 60),
+    soh: Math.floor(Math.random() * (100 - 80) + 80),
+  }));
+};
+
 const Dashboard = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -52,14 +60,6 @@ const Dashboard = () => {
       title: "Settings Updated",
       description: "BMS settings have been successfully updated.",
     });
-  };
-
-  const generateData = (points: number) => {
-    return Array.from({ length: points }, (_, i) => ({
-      time: `${i}h`,
-      soc: Math.floor(Math.random() * (100 - 60) + 60),
-      soh: Math.floor(Math.random() * (100 - 80) + 80),
-    }));
   };
 
   return (
