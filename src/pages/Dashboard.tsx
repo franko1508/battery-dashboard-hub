@@ -18,39 +18,40 @@ interface BMSSettings {
   maxDischargeCurrent: string;
 }
 
-const generateData = (points: number) => {
-  const currentData = Array.from({ length: points }, (_, i) => ({
+interface BatteryData {
+  time: string;
+  soc: number | null;
+  soh: number | null;
+  socPredicted?: number | null;
+  sohPredicted?: number | null;
+}
+
+const generateData = (points: number): BatteryData[] => {
+  const currentData: BatteryData[] = Array.from({ length: points }, (_, i) => ({
     time: `${i}h`,
     soc: Math.floor(Math.random() * (100 - 60) + 60),
     soh: Math.floor(Math.random() * (100 - 80) + 80),
+    socPredicted: null,
+    sohPredicted: null,
   }));
 
   // Add predictions for the next 12 hours
-  const predictions = Array.from({ length: 12 }, (_, i) => ({
+  const predictions: BatteryData[] = Array.from({ length: 12 }, (_, i) => ({
     time: `${points + i}h`,
-    socPredicted: Math.floor(Math.random() * (100 - 50) + 50), // Predicted SOC
-    sohPredicted: Math.floor(Math.random() * (100 - 75) + 75), // Predicted SOH
+    soc: null,
+    soh: null,
+    socPredicted: Math.floor(Math.random() * (100 - 50) + 50),
+    sohPredicted: Math.floor(Math.random() * (100 - 75) + 75),
   }));
 
-  // Combine current data with predictions
-  return [
-    ...currentData,
-    ...predictions.map(pred => ({
-      time: pred.time,
-      socPredicted: pred.socPredicted,
-      sohPredicted: pred.sohPredicted,
-      // Add null values for real data in prediction period
-      soc: null,
-      soh: null,
-    }))
-  ];
+  return [...currentData, ...predictions];
 };
 
 const Dashboard = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [data] = useState(generateData(24));
+  const [data] = useState<BatteryData[]>(generateData(24));
   const [mqttConfig, setMqttConfig] = useState({
     broker: '',
     port: '',
