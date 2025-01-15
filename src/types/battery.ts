@@ -13,10 +13,3 @@ export interface BMSSettings {
   maxChargeCurrent: string;
   maxDischargeCurrent: string;
 }
-
-export interface MQTTConfig {
-  broker: string;
-  port: string;
-  username: string;
-  password: string;
-}

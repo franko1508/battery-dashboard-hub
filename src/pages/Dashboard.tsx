@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { BatteryMetricsCards } from '@/components/dashboard/BatteryMetricsCards';
 import { BatteryChart } from '@/components/dashboard/BatteryChart';
 import { BMSSettingsForm } from '@/components/dashboard/BMSSettingsForm';
-import { MQTTConfigForm } from '@/components/dashboard/MQTTConfigForm';
 import { generateData } from '@/utils/batteryData';
 
 const Dashboard = () => {
@@ -28,7 +27,6 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <BatteryChart data={data} />
           <BMSSettingsForm />
-          <MQTTConfigForm />
         </div>
       </div>
     </div>
