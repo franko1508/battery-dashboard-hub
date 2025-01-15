@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BatteryData } from "@/types/battery";
@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInDays, isWithinInterval, startOfDay, endOfDay, parseISO } from "date-fns";
 import { DateRange } from "react-day-picker";
 import {
   Popover,
@@ -34,6 +34,41 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
       [metric]: !prev[metric]
     }));
   };
+
+  const filteredData = useMemo(() => {
+    if (!date?.from) return data;
+
+    const from = startOfDay(date.from);
+    const to = date.to ? endOfDay(date.to) : endOfDay(date.from);
+    const daysDifference = differenceInDays(to, from);
+
+    return data.filter(item => {
+      const itemDate = parseISO(item.time);
+      return isWithinInterval(itemDate, { start: from, end: to });
+    }).map(item => {
+      const itemDate = parseISO(item.time);
+      let formattedTime;
+
+      if (daysDifference === 0) {
+        // For single day, show hours
+        formattedTime = format(itemDate, 'HH:mm');
+      } else if (daysDifference <= 7) {
+        // For a week or less, show day and hour
+        formattedTime = format(itemDate, 'EEE HH:mm');
+      } else if (daysDifference <= 31) {
+        // For a month or less, show date
+        formattedTime = format(itemDate, 'MMM dd');
+      } else {
+        // For longer periods, show month and year
+        formattedTime = format(itemDate, 'MMM yyyy');
+      }
+
+      return {
+        ...item,
+        time: formattedTime
+      };
+    });
+  }, [data, date]);
 
   return (
     <Card className="col-span-1">
@@ -118,7 +153,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
       </CardHeader>
       <CardContent className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
+          <LineChart data={filteredData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="time" />
             <YAxis />

@@ -1,8 +1,10 @@
 import { BatteryData } from "@/types/battery";
+import { addHours, format, subHours } from "date-fns";
 
 export const generateData = (points: number): BatteryData[] => {
+  const now = new Date();
   const currentData: BatteryData[] = Array.from({ length: points }, (_, i) => ({
-    time: `${i}h`,
+    time: format(subHours(now, points - i - 1), "yyyy-MM-dd'T'HH:mm:ss"),
     soc: Math.floor(Math.random() * (100 - 60) + 60),
     soh: Math.floor(Math.random() * (100 - 80) + 80),
     socPredicted: null,
@@ -10,7 +12,7 @@ export const generateData = (points: number): BatteryData[] => {
   }));
 
   const predictions: BatteryData[] = Array.from({ length: 12 }, (_, i) => ({
-    time: `${points + i}h`,
+    time: format(addHours(now, i + 1), "yyyy-MM-dd'T'HH:mm:ss"),
     soc: null,
     soh: null,
     socPredicted: Math.floor(Math.random() * (100 - 50) + 50),
