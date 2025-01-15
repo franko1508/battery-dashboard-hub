@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Battery, Settings } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Battery, Settings, Brain } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 
 interface BMSSettings {
@@ -19,11 +19,31 @@ interface BMSSettings {
 }
 
 const generateData = (points: number) => {
-  return Array.from({ length: points }, (_, i) => ({
+  const currentData = Array.from({ length: points }, (_, i) => ({
     time: `${i}h`,
     soc: Math.floor(Math.random() * (100 - 60) + 60),
     soh: Math.floor(Math.random() * (100 - 80) + 80),
   }));
+
+  // Add predictions for the next 12 hours
+  const predictions = Array.from({ length: 12 }, (_, i) => ({
+    time: `${points + i}h`,
+    socPredicted: Math.floor(Math.random() * (100 - 50) + 50), // Predicted SOC
+    sohPredicted: Math.floor(Math.random() * (100 - 75) + 75), // Predicted SOH
+  }));
+
+  // Combine current data with predictions
+  return [
+    ...currentData,
+    ...predictions.map(pred => ({
+      time: pred.time,
+      socPredicted: pred.socPredicted,
+      sohPredicted: pred.sohPredicted,
+      // Add null values for real data in prediction period
+      soc: null,
+      soh: null,
+    }))
+  ];
 };
 
 const Dashboard = () => {
@@ -79,7 +99,10 @@ const Dashboard = () => {
               <Battery className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data[data.length - 1].soc}%</div>
+              <div className="text-2xl font-bold">{data[0].soc}%</div>
+              <div className="text-sm text-muted-foreground">
+                Predicted in 12h: {data[data.length - 1].socPredicted}%
+              </div>
             </CardContent>
           </Card>
 
@@ -89,17 +112,22 @@ const Dashboard = () => {
               <Battery className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data[data.length - 1].soh}%</div>
+              <div className="text-2xl font-bold">{data[0].soh}%</div>
+              <div className="text-sm text-muted-foreground">
+                Predicted in 12h: {data[data.length - 1].sohPredicted}%
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">MQTT Status</CardTitle>
-              <Settings className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">AI Predictions</CardTitle>
+              <Brain className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Disconnected</div>
+              <div className="text-sm text-muted-foreground">
+                Next 12 hours forecast available
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -116,8 +144,35 @@ const Dashboard = () => {
                   <XAxis dataKey="time" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="soc" stroke="#60A5FA" name="SOC (%)" />
-                  <Line type="monotone" dataKey="soh" stroke="#34D399" name="SOH (%)" />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="soc" 
+                    stroke="#60A5FA" 
+                    name="SOC (%)" 
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="soh" 
+                    stroke="#34D399" 
+                    name="SOH (%)" 
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="socPredicted" 
+                    stroke="#60A5FA" 
+                    strokeDasharray="5 5" 
+                    name="Predicted SOC (%)" 
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="sohPredicted" 
+                    stroke="#34D399" 
+                    strokeDasharray="5 5" 
+                    name="Predicted SOH (%)" 
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
