@@ -3,6 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BatteryData } from "@/types/battery";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface BatteryChartProps {
   data: BatteryData[];
@@ -16,6 +25,14 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
     sohPredicted: true,
   });
 
+  const [date, setDate] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: undefined,
+    to: undefined,
+  });
+
   const toggleMetric = (metric: keyof typeof visibleMetrics) => {
     setVisibleMetrics(prev => ({
       ...prev,
@@ -26,7 +43,41 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
   return (
     <Card className="col-span-1">
       <CardHeader>
-        <CardTitle>Battery Metrics Over Time</CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle>Battery Metrics Over Time</CardTitle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date.from ? (
+                  date.to ? (
+                    <>
+                      {format(date.from, "LLL dd, y")} -{" "}
+                      {format(date.to, "LLL dd, y")}
+                    </>
+                  ) : (
+                    format(date.from, "LLL dd, y")
+                  )
+                ) : (
+                  <span>Pick a date range</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={date.from}
+                selected={{ from: date.from, to: date.to }}
+                onSelect={setDate}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
         <div className="flex flex-wrap gap-4 mt-2">
           <div className="flex items-center space-x-2">
             <Checkbox 
