@@ -7,6 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
 import {
   Popover,
   PopoverContent,
@@ -25,13 +26,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
     sohPredicted: true,
   });
 
-  const [date, setDate] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
-    from: undefined,
-    to: undefined,
-  });
+  const [date, setDate] = useState<DateRange | undefined>();
 
   const toggleMetric = (metric: keyof typeof visibleMetrics) => {
     setVisibleMetrics(prev => ({
@@ -52,7 +47,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                 className="justify-start text-left font-normal"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {date.from ? (
+                {date?.from ? (
                   date.to ? (
                     <>
                       {format(date.from, "LLL dd, y")} -{" "}
@@ -70,8 +65,8 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
               <Calendar
                 initialFocus
                 mode="range"
-                defaultMonth={date.from}
-                selected={{ from: date.from, to: date.to }}
+                defaultMonth={date?.from}
+                selected={date}
                 onSelect={setDate}
                 numberOfMonths={2}
               />
