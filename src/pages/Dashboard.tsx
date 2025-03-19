@@ -9,29 +9,30 @@ import { BMSSettingsForm } from '@/components/dashboard/BMSSettingsForm';
 import { fetchBatteryData } from '@/utils/dynamoDBService';
 import { generateData } from '@/utils/batteryData';
 import { useToast } from "@/components/ui/use-toast";
+import { useEffect } from 'react';
 
 const Dashboard = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['batteryData'],
     queryFn: fetchBatteryData,
-    // Using onSettled with error check instead of onError
-    onSettled: (data, error) => {
-      if (error) {
-        console.error("Failed to fetch data:", error);
-        toast({
-          title: "Data Fetch Error",
-          description: "Could not load data from DynamoDB. Using fallback data.",
-          variant: "destructive",
-        });
-      }
-    },
-    // Fallback to mock data if the query fails
     placeholderData: generateData(24),
   });
+
+  // Handle error with useEffect instead of onSettled
+  useEffect(() => {
+    if (error) {
+      console.error("Failed to fetch data:", error);
+      toast({
+        title: "Data Fetch Error",
+        description: "Could not load data from DynamoDB. Using fallback data.",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   return (
     <div className="min-h-screen bg-background p-6">
