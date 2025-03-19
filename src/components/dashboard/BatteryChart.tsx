@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { format, differenceInDays, isWithinInterval, startOfDay, endOfDay, parseISO } from "date-fns";
 import { DateRange } from "react-day-picker";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -27,6 +29,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
   });
 
   const [date, setDate] = useState<DateRange | undefined>();
+  const [swapAxes, setSwapAxes] = useState(false);
 
   const toggleMetric = (metric: keyof typeof visibleMetrics) => {
     setVisibleMetrics(prev => ({
@@ -36,38 +39,68 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
   };
 
   const filteredData = useMemo(() => {
-    if (!date?.from) return data;
+    if (!data.length) return [];
+    
+    let processedData = [...data];
+    
+    if (date?.from) {
+      const from = startOfDay(date.from);
+      const to = date.to ? endOfDay(date.to) : endOfDay(date.from);
+      const daysDifference = differenceInDays(to, from);
 
-    const from = startOfDay(date.from);
-    const to = date.to ? endOfDay(date.to) : endOfDay(date.from);
-    const daysDifference = differenceInDays(to, from);
+      processedData = data.filter(item => {
+        try {
+          const itemDate = parseISO(item.time);
+          return isWithinInterval(itemDate, { start: from, end: to });
+        } catch (e) {
+          console.error("Invalid date format:", item.time, e);
+          return false;
+        }
+      });
 
-    return data.filter(item => {
-      const itemDate = parseISO(item.time);
-      return isWithinInterval(itemDate, { start: from, end: to });
-    }).map(item => {
-      const itemDate = parseISO(item.time);
-      let formattedTime;
+      // Format time based on date range
+      processedData = processedData.map(item => {
+        try {
+          const itemDate = parseISO(item.time);
+          let formattedTime;
 
-      if (daysDifference === 0) {
-        // For single day, show hours
-        formattedTime = format(itemDate, 'HH:mm');
-      } else if (daysDifference <= 7) {
-        // For a week or less, show day and hour
-        formattedTime = format(itemDate, 'EEE HH:mm');
-      } else if (daysDifference <= 31) {
-        // For a month or less, show date
-        formattedTime = format(itemDate, 'MMM dd');
-      } else {
-        // For longer periods, show month and year
-        formattedTime = format(itemDate, 'MMM yyyy');
-      }
+          if (daysDifference === 0) {
+            // For single day, show hours
+            formattedTime = format(itemDate, 'HH:mm');
+          } else if (daysDifference <= 7) {
+            // For a week or less, show day and hour
+            formattedTime = format(itemDate, 'EEE HH:mm');
+          } else if (daysDifference <= 31) {
+            // For a month or less, show date
+            formattedTime = format(itemDate, 'MMM dd');
+          } else {
+            // For longer periods, show month and year
+            formattedTime = format(itemDate, 'MMM yyyy');
+          }
 
-      return {
+          return {
+            ...item,
+            displayTime: formattedTime,
+          };
+        } catch (e) {
+          console.error("Error formatting date:", item.time, e);
+          return {
+            ...item,
+            displayTime: item.time,
+          };
+        }
+      });
+    } else {
+      // If no date filter, still provide displayTime
+      processedData = processedData.map(item => ({
         ...item,
-        time: formattedTime
-      };
-    });
+        displayTime: item.time.includes('T') 
+          ? format(parseISO(item.time), 'HH:mm') 
+          : item.time,
+      }));
+    }
+
+    return processedData;
   }, [data, date]);
 
   return (
@@ -108,6 +141,20 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
             </PopoverContent>
           </Popover>
         </div>
+        
+        <div className="flex justify-between items-center mt-2">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="axes-toggle"
+              checked={swapAxes}
+              onCheckedChange={setSwapAxes}
+            />
+            <Label htmlFor="axes-toggle">
+              {swapAxes ? "SOC/SOH on X-axis" : "Time on X-axis"}
+            </Label>
+          </div>
+        </div>
+        
         <div className="flex flex-wrap gap-4 mt-2">
           <div className="flex items-center space-x-2">
             <Checkbox 
@@ -153,49 +200,98 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
       </CardHeader>
       <CardContent className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={filteredData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="time" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            {visibleMetrics.soc && (
-              <Line 
-                type="monotone" 
-                dataKey="soc" 
-                stroke="#60A5FA" 
-                name="SOC (%)" 
-                strokeWidth={2}
-              />
-            )}
-            {visibleMetrics.soh && (
-              <Line 
-                type="monotone" 
-                dataKey="soh" 
-                stroke="#34D399" 
-                name="SOH (%)" 
-                strokeWidth={2}
-              />
-            )}
-            {visibleMetrics.socPredicted && (
-              <Line 
-                type="monotone" 
-                dataKey="socPredicted" 
-                stroke="#60A5FA" 
-                strokeDasharray="5 5" 
-                name="Predicted SOC (%)" 
-              />
-            )}
-            {visibleMetrics.sohPredicted && (
-              <Line 
-                type="monotone" 
-                dataKey="sohPredicted" 
-                stroke="#34D399" 
-                strokeDasharray="5 5" 
-                name="Predicted SOH (%)" 
-              />
-            )}
-          </LineChart>
+          {swapAxes ? (
+            <LineChart 
+              data={filteredData}
+              layout="vertical"
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" domain={[0, 100]} />
+              <YAxis dataKey="displayTime" type="category" />
+              <Tooltip />
+              <Legend />
+              {visibleMetrics.soc && (
+                <Line 
+                  type="monotone" 
+                  dataKey="soc" 
+                  stroke="#60A5FA" 
+                  name="SOC (%)" 
+                  strokeWidth={2}
+                />
+              )}
+              {visibleMetrics.soh && (
+                <Line 
+                  type="monotone" 
+                  dataKey="soh" 
+                  stroke="#34D399" 
+                  name="SOH (%)" 
+                  strokeWidth={2}
+                />
+              )}
+              {visibleMetrics.socPredicted && (
+                <Line 
+                  type="monotone" 
+                  dataKey="socPredicted" 
+                  stroke="#60A5FA" 
+                  strokeDasharray="5 5" 
+                  name="Predicted SOC (%)" 
+                />
+              )}
+              {visibleMetrics.sohPredicted && (
+                <Line 
+                  type="monotone" 
+                  dataKey="sohPredicted" 
+                  stroke="#34D399" 
+                  strokeDasharray="5 5" 
+                  name="Predicted SOH (%)" 
+                />
+              )}
+            </LineChart>
+          ) : (
+            <LineChart data={filteredData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="displayTime" />
+              <YAxis domain={[0, 100]} />
+              <Tooltip />
+              <Legend />
+              {visibleMetrics.soc && (
+                <Line 
+                  type="monotone" 
+                  dataKey="soc" 
+                  stroke="#60A5FA" 
+                  name="SOC (%)" 
+                  strokeWidth={2}
+                />
+              )}
+              {visibleMetrics.soh && (
+                <Line 
+                  type="monotone" 
+                  dataKey="soh" 
+                  stroke="#34D399" 
+                  name="SOH (%)" 
+                  strokeWidth={2}
+                />
+              )}
+              {visibleMetrics.socPredicted && (
+                <Line 
+                  type="monotone" 
+                  dataKey="socPredicted" 
+                  stroke="#60A5FA" 
+                  strokeDasharray="5 5" 
+                  name="Predicted SOC (%)" 
+                />
+              )}
+              {visibleMetrics.sohPredicted && (
+                <Line 
+                  type="monotone" 
+                  dataKey="sohPredicted" 
+                  stroke="#34D399" 
+                  strokeDasharray="5 5" 
+                  name="Predicted SOH (%)" 
+                />
+              )}
+            </LineChart>
+          )}
         </ResponsiveContainer>
       </CardContent>
     </Card>

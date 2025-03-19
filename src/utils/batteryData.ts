@@ -1,3 +1,5 @@
+
+// This file now serves as a fallback for when DynamoDB data is unavailable
 import { BatteryData } from "@/types/battery";
 import { addHours, format, subHours } from "date-fns";
 
