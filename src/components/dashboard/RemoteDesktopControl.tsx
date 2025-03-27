@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
-import { Monitor, Power, MousePointer, Keyboard } from "lucide-react";
+import { Monitor, Power, MousePointer, Keyboard, Cpu } from "lucide-react";
 import { RFB } from "@/utils/vnc-utils";
 
 interface RemoteDesktopConfig {
@@ -15,16 +15,22 @@ interface RemoteDesktopConfig {
   password: string;
 }
 
-export const RemoteDesktopControl = () => {
+interface RemoteDesktopControlProps {
+  systemType?: 'generic' | 'raspberry-pi';
+}
+
+export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopControlProps) => {
   const { toast } = useToast();
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const vncScreen = useRef<HTMLDivElement>(null);
   const rfbRef = useRef<any>(null);
   
+  const defaultHost = systemType === 'raspberry-pi' ? 'raspberrypi.local' : 'localhost';
+  
   const form = useForm<RemoteDesktopConfig>({
     defaultValues: {
-      host: "localhost",
+      host: defaultHost,
       port: "5900",
       password: "",
     },
@@ -121,7 +127,11 @@ export const RemoteDesktopControl = () => {
     <Card className="col-span-1">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Monitor className="h-5 w-5" /> Remote Desktop Control
+          {systemType === 'raspberry-pi' ? (
+            <><Cpu className="h-5 w-5" /> Raspberry Pi Remote Control</>
+          ) : (
+            <><Monitor className="h-5 w-5" /> Remote Desktop Control</>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -132,9 +142,9 @@ export const RemoteDesktopControl = () => {
               name="host"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Host IP Address</FormLabel>
+                  <FormLabel>Raspberry Pi IP Address or Hostname</FormLabel>
                   <FormControl>
-                    <Input placeholder="192.168.1.100" disabled={connected} {...field} />
+                    <Input placeholder="raspberrypi.local" disabled={connected} {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -156,9 +166,9 @@ export const RemoteDesktopControl = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>VNC Password (if required)</FormLabel>
+                  <FormLabel>VNC Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Optional" disabled={connected} {...field} />
+                    <Input type="password" placeholder="Required for Raspberry Pi VNC" disabled={connected} {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -195,7 +205,20 @@ export const RemoteDesktopControl = () => {
           className={`mt-4 border rounded-md overflow-hidden ${connected ? 'h-64' : 'h-0'}`}
         ></div>
         
-        {!connected && (
+        {!connected && systemType === 'raspberry-pi' && (
+          <div className="mt-4 text-sm text-muted-foreground">
+            <p className="mb-2">Setup VNC on your Raspberry Pi:</p>
+            <ol className="list-decimal pl-5 space-y-1">
+              <li>Enable VNC: <code>sudo raspi-config</code> → Interface Options → VNC → Enable</li>
+              <li>Install websockify: <code>sudo apt install websockify</code></li>
+              <li>Run VNC Server: <code>vncserver :1</code> (first time will prompt for password)</li>
+              <li>Start proxy: <code>websockify 5900 localhost:5901</code></li>
+              <li>Find your Pi's IP: <code>hostname -I</code> or use <code>raspberrypi.local</code> with mDNS</li>
+            </ol>
+          </div>
+        )}
+        
+        {!connected && systemType === 'generic' && (
           <div className="mt-4 text-sm text-muted-foreground">
             <p className="mb-2">Quick Setup for Ubuntu:</p>
             <ol className="list-decimal pl-5 space-y-1">
