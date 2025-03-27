@@ -1,44 +1,26 @@
 
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { BatteryMetricsCards } from '@/components/dashboard/BatteryMetricsCards';
 import { BatteryChart } from '@/components/dashboard/BatteryChart';
-import { BMSSettingsForm } from '@/components/dashboard/BMSSettingsForm';
-import { fetchBatteryData } from '@/utils/dynamoDBService';
+import { RemoteDesktopControl } from '@/components/dashboard/RemoteDesktopControl';
 import { generateData } from '@/utils/batteryData';
 import { useToast } from "@/components/ui/use-toast";
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const Dashboard = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['batteryData'],
-    queryFn: fetchBatteryData,
-    placeholderData: generateData(24),
-  });
-
-  // Handle error with useEffect instead of onSettled
-  useEffect(() => {
-    if (error) {
-      console.error("Failed to fetch data:", error);
-      toast({
-        title: "Data Fetch Error",
-        description: "Could not load data from DynamoDB. Using fallback data.",
-        variant: "destructive",
-      });
-    }
-  }, [error, toast]);
+  const [data, setData] = useState(generateData(24));
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Battery Management System</h1>
+          <h1 className="text-2xl font-bold">Remote System Management</h1>
           <Button variant="secondary" onClick={logout}>
             Logout
           </Button>
@@ -46,21 +28,15 @@ const Dashboard = () => {
 
         {isLoading && (
           <div className="text-center py-4">
-            <p>Loading battery data...</p>
+            <p>Loading data...</p>
           </div>
         )}
 
-        {isError && (
-          <div className="text-center py-4 text-red-500">
-            <p>Error loading data. Using fallback data.</p>
-          </div>
-        )}
-
-        <BatteryMetricsCards data={data || []} />
+        <BatteryMetricsCards data={data} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <BatteryChart data={data || []} />
-          <BMSSettingsForm />
+          <BatteryChart data={data} />
+          <RemoteDesktopControl />
         </div>
       </div>
     </div>
