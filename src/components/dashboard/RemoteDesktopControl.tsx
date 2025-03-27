@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
-import { Monitor, Power, MousePointer, Keyboard, Cpu } from "lucide-react";
+import { Monitor, Power, MousePointer, Keyboard, Cpu, Server } from "lucide-react";
 import { RFB } from "@/utils/vnc-utils";
 
 interface RemoteDesktopConfig {
@@ -49,26 +48,20 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
     setConnecting(true);
     
     try {
-      // Create websockified URL (requires a websockify proxy running on the server)
       const wsUrl = `ws://${config.host}:${config.port}`;
       
-      // Disconnect any existing connection
       if (rfbRef.current) {
         rfbRef.current.disconnect();
       }
       
-      // Initialize VNC connection
       if (vncScreen.current) {
-        // Clear the container first
         vncScreen.current.innerHTML = '';
         
-        // Create new RFB connection
         rfbRef.current = new RFB(vncScreen.current, wsUrl, {
           credentials: { password: config.password },
           wsProtocols: ['binary'],
         });
         
-        // Set up event handlers
         rfbRef.current.addEventListener('connect', () => {
           setConnected(true);
           setConnecting(false);
@@ -114,7 +107,6 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
     }
   };
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (rfbRef.current) {
@@ -130,7 +122,7 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
           {systemType === 'raspberry-pi' ? (
             <><Cpu className="h-5 w-5" /> Raspberry Pi Remote Control</>
           ) : (
-            <><Monitor className="h-5 w-5" /> Remote Desktop Control</>
+            <><Server className="h-5 w-5" /> Ubuntu Server Remote Control</>
           )}
         </CardTitle>
       </CardHeader>
@@ -142,9 +134,9 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
               name="host"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Raspberry Pi IP Address or Hostname</FormLabel>
+                  <FormLabel>Server IP Address or Hostname</FormLabel>
                   <FormControl>
-                    <Input placeholder="raspberrypi.local" disabled={connected} {...field} />
+                    <Input placeholder={defaultHost} disabled={connected} {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -168,7 +160,7 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
                 <FormItem>
                   <FormLabel>VNC Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Required for Raspberry Pi VNC" disabled={connected} {...field} />
+                    <Input type="password" placeholder="VNC Session Password" disabled={connected} {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -205,28 +197,18 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
           className={`mt-4 border rounded-md overflow-hidden ${connected ? 'h-64' : 'h-0'}`}
         ></div>
         
-        {!connected && systemType === 'raspberry-pi' && (
+        {!connected && (
           <div className="mt-4 text-sm text-muted-foreground">
-            <p className="mb-2">Setup VNC on your Raspberry Pi:</p>
+            <p className="mb-2">Ubuntu Server VNC Setup:</p>
             <ol className="list-decimal pl-5 space-y-1">
-              <li>Enable VNC: <code>sudo raspi-config</code> → Interface Options → VNC → Enable</li>
-              <li>Install websockify: <code>sudo apt install websockify</code></li>
-              <li>Run VNC Server: <code>vncserver :1</code> (first time will prompt for password)</li>
-              <li>Start proxy: <code>websockify 5900 localhost:5901</code></li>
-              <li>Find your Pi's IP: <code>hostname -I</code> or use <code>raspberrypi.local</code> with mDNS</li>
-            </ol>
-          </div>
-        )}
-        
-        {!connected && systemType === 'generic' && (
-          <div className="mt-4 text-sm text-muted-foreground">
-            <p className="mb-2">Quick Setup for Ubuntu:</p>
-            <ol className="list-decimal pl-5 space-y-1">
-              <li>Install VNC server: <code>sudo apt install tigervnc-standalone-server</code></li>
+              <li>Install VNC server: <code>sudo apt install tigervnc-standalone-server websockify</code></li>
               <li>Set a VNC password: <code>vncpasswd</code></li>
               <li>Start VNC server: <code>vncserver :1</code></li>
-              <li>Run websockify: <code>websockify 5900 localhost:5901</code></li>
+              <li>Run websockify proxy: <code>websockify 5900 localhost:5901</code></li>
+              <li>Find your server's IP: <code>hostname -I</code></li>
+              <li>Allow VNC ports in firewall if needed: <code>sudo ufw allow 5900/tcp</code></li>
             </ol>
+            <p className="mt-2 text-xs">Note: This works for physical machines, VMs, and Raspberry Pi running Ubuntu.</p>
           </div>
         )}
       </CardContent>
