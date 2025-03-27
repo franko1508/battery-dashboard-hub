@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
-import { Monitor, Power, MousePointer, Keyboard, Cpu, Server } from "lucide-react";
+import { Monitor, Power, MousePointer, Keyboard, Server } from "lucide-react";
 import { RFB } from "@/utils/vnc-utils";
 
 interface RemoteDesktopConfig {
@@ -119,11 +120,7 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
     <Card className="col-span-1">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          {systemType === 'raspberry-pi' ? (
-            <><Cpu className="h-5 w-5" /> Raspberry Pi Remote Control</>
-          ) : (
-            <><Server className="h-5 w-5" /> Ubuntu Server Remote Control</>
-          )}
+          <Server className="h-5 w-5" /> Ubuntu Server Remote Control
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -199,16 +196,38 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
         
         {!connected && (
           <div className="mt-4 text-sm text-muted-foreground">
-            <p className="mb-2">Ubuntu Server VNC Setup:</p>
-            <ol className="list-decimal pl-5 space-y-1">
-              <li>Install VNC server: <code>sudo apt install tigervnc-standalone-server websockify</code></li>
-              <li>Set a VNC password: <code>vncpasswd</code></li>
-              <li>Start VNC server: <code>vncserver :1</code></li>
-              <li>Run websockify proxy: <code>websockify 5900 localhost:5901</code></li>
-              <li>Find your server's IP: <code>hostname -I</code></li>
-              <li>Allow VNC ports in firewall if needed: <code>sudo ufw allow 5900/tcp</code></li>
-            </ol>
-            <p className="mt-2 text-xs">Note: This works for physical machines, VMs, and Raspberry Pi running Ubuntu.</p>
+            <p className="mb-2">Ubuntu VNC Setup Options:</p>
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">Option 1: Share existing display (recommended for desktop environments)</p>
+                <ol className="list-decimal pl-5 space-y-1 mt-1">
+                  <li>Install x11vnc: <code>sudo apt install x11vnc websockify</code></li>
+                  <li>Set a VNC password: <code>x11vnc -storepasswd</code></li>
+                  <li>Start sharing your display: <code>x11vnc -display :0 -auth guess -forever -loop -noxdamage -repeat -rfbauth ~/.vnc/passwd -rfbport 5900 -shared</code></li>
+                  <li>Start websockify: <code>websockify 5900 localhost:5900</code></li>
+                </ol>
+              </div>
+              
+              <div>
+                <p className="font-medium">Option 2: Create a new VNC session (better for headless servers)</p>
+                <ol className="list-decimal pl-5 space-y-1 mt-1">
+                  <li>Install TigerVNC: <code>sudo apt install tigervnc-standalone-server websockify</code></li>
+                  <li>Set a VNC password: <code>vncpasswd</code></li>
+                  <li>Start a new VNC session: <code>vncserver :1</code></li>
+                  <li>Run websockify: <code>websockify 5900 localhost:5901</code></li>
+                </ol>
+              </div>
+              
+              <div>
+                <p className="text-xs mt-2">Additional tips:</p>
+                <ul className="list-disc pl-5 space-y-1 mt-1 text-xs">
+                  <li>Find your server's IP: <code>hostname -I</code></li>
+                  <li>Allow VNC ports in firewall: <code>sudo ufw allow 5900/tcp</code></li>
+                  <li>For VM access, ensure networking is configured to allow connections</li>
+                  <li>For secure access, consider setting up an SSH tunnel</li>
+                </ul>
+              </div>
+            </div>
           </div>
         )}
       </CardContent>
