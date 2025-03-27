@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
-import { Monitor, Power, MousePointer, Keyboard, Server } from "lucide-react";
+import { Monitor, Power, MousePointer, Keyboard, Server, AlertTriangle } from "lucide-react";
 import { RFB } from "@/utils/vnc-utils";
 
 interface RemoteDesktopConfig {
@@ -23,10 +23,11 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
   const { toast } = useToast();
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const vncScreen = useRef<HTMLDivElement>(null);
   const rfbRef = useRef<any>(null);
   
-  const defaultHost = systemType === 'raspberry-pi' ? 'raspberrypi.local' : 'localhost';
+  const defaultHost = 'localhost';
   
   const form = useForm<RemoteDesktopConfig>({
     defaultValues: {
@@ -47,9 +48,18 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
 
   const connectVNC = (config: RemoteDesktopConfig) => {
     setConnecting(true);
+    setConnectionError(null);
     
     try {
+      // Validate input
+      if (!config.host) {
+        setConnectionError("Host is required");
+        setConnecting(false);
+        return;
+      }
+      
       const wsUrl = `ws://${config.host}:${config.port}`;
+      console.log(`Attempting connection to ${wsUrl}`);
       
       if (rfbRef.current) {
         rfbRef.current.disconnect();
@@ -66,10 +76,17 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
         rfbRef.current.addEventListener('connect', () => {
           setConnected(true);
           setConnecting(false);
+          setConnectionError(null);
           toast({
             title: "Connected",
             description: `Successfully connected to ${config.host}:${config.port}`,
           });
+        });
+        
+        rfbRef.current.addEventListener('error', (e: any) => {
+          console.error('VNC error:', e.detail);
+          setConnectionError(`Connection error: ${e.detail.message || 'Unknown error'}`);
+          setConnecting(false);
         });
         
         rfbRef.current.addEventListener('disconnect', (e: any) => {
@@ -81,6 +98,7 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
               description: "Connection closed",
             });
           } else {
+            setConnectionError(`Could not connect to ${config.host}:${config.port}`);
             toast({
               title: "Connection Failed",
               description: `Could not connect to ${config.host}:${config.port}`,
@@ -92,6 +110,7 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
     } catch (error) {
       console.error("VNC connection error:", error);
       setConnecting(false);
+      setConnectionError("Failed to establish VNC connection");
       toast({
         title: "Connection Error",
         description: "Failed to establish VNC connection",
@@ -105,6 +124,7 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
       rfbRef.current.disconnect();
       rfbRef.current = null;
       setConnected(false);
+      setConnectionError(null);
     }
   };
 
@@ -163,6 +183,13 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
               )}
             />
             
+            {connectionError && (
+              <div className="flex items-center gap-2 text-destructive text-sm p-2 bg-destructive/10 rounded">
+                <AlertTriangle className="h-4 w-4" />
+                <span>{connectionError}</span>
+              </div>
+            )}
+            
             <Button 
               type="submit" 
               className="w-full"
@@ -191,10 +218,10 @@ export const RemoteDesktopControl = ({ systemType = 'generic' }: RemoteDesktopCo
         
         <div 
           ref={vncScreen} 
-          className={`mt-4 border rounded-md overflow-hidden ${connected ? 'h-64' : 'h-0'}`}
+          className={`mt-4 border rounded-md overflow-hidden ${connected || connecting ? 'h-64' : 'h-0'}`}
         ></div>
         
-        {!connected && (
+        {!connected && !connecting && (
           <div className="mt-4 text-sm text-muted-foreground">
             <p className="mb-2">Ubuntu VNC Setup Options:</p>
             <div className="space-y-4">
