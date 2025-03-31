@@ -1,9 +1,8 @@
-
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { BatteryData } from "@/types/battery";
 import { AWS_CONFIG } from "./awsConfig";
-import { format, parseISO, subHours, addHours } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 // Initialize the DynamoDB client
 const client = new DynamoDBClient({
