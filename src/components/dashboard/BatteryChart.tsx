@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -232,18 +233,18 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                 <Line 
                   type="monotone" 
                   dataKey="socPredicted" 
-                  stroke="#60A5FA" 
-                  strokeDasharray="5 5" 
+                  stroke="#818CF8" 
                   name="Predicted SOC (%)" 
+                  strokeWidth={2}
                 />
               )}
               {visibleMetrics.sohPredicted && (
                 <Line 
                   type="monotone" 
                   dataKey="sohPredicted" 
-                  stroke="#34D399" 
-                  strokeDasharray="5 5" 
+                  stroke="#6EE7B7" 
                   name="Predicted SOH (%)" 
+                  strokeWidth={2}
                 />
               )}
             </LineChart>
@@ -276,18 +277,18 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                 <Line 
                   type="monotone" 
                   dataKey="socPredicted" 
-                  stroke="#60A5FA" 
-                  strokeDasharray="5 5" 
+                  stroke="#818CF8" 
                   name="Predicted SOC (%)" 
+                  strokeWidth={2}
                 />
               )}
               {visibleMetrics.sohPredicted && (
                 <Line 
                   type="monotone" 
                   dataKey="sohPredicted" 
-                  stroke="#34D399" 
-                  strokeDasharray="5 5" 
+                  stroke="#6EE7B7" 
                   name="Predicted SOH (%)" 
+                  strokeWidth={2}
                 />
               )}
             </LineChart>
