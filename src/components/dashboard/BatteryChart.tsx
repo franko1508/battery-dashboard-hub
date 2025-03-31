@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -59,23 +58,18 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
         }
       });
 
-      // Format time based on date range
       processedData = processedData.map(item => {
         try {
           const itemDate = parseISO(item.time);
           let formattedTime;
 
           if (daysDifference === 0) {
-            // For single day, show only hours:minutes
             formattedTime = format(itemDate, 'HH:mm');
           } else if (daysDifference <= 7) {
-            // For a week or less, show only time
             formattedTime = format(itemDate, 'HH:mm');
           } else if (daysDifference <= 31) {
-            // For a month or less, show only date
             formattedTime = format(itemDate, 'dd');
           } else {
-            // For longer periods, show only month
             formattedTime = format(itemDate, 'MMM');
           }
 
@@ -92,7 +86,6 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
         }
       });
     } else {
-      // If no date filter, show only hours:minutes
       processedData = processedData.map(item => ({
         ...item,
         displayTime: item.time.includes('T') 
@@ -233,7 +226,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                 <Line 
                   type="monotone" 
                   dataKey="socPredicted" 
-                  stroke="#818CF8" 
+                  stroke="#1E40AF" 
                   name="Predicted SOC (%)" 
                   strokeWidth={2}
                 />
@@ -242,7 +235,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                 <Line 
                   type="monotone" 
                   dataKey="sohPredicted" 
-                  stroke="#6EE7B7" 
+                  stroke="#DC2626" 
                   name="Predicted SOH (%)" 
                   strokeWidth={2}
                 />
@@ -279,7 +272,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                 <Line 
                   type="monotone" 
                   dataKey="socPredicted" 
-                  stroke="#818CF8" 
+                  stroke="#1E40AF" 
                   name="Predicted SOC (%)" 
                   strokeWidth={2}
                   connectNulls={true}
@@ -289,7 +282,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                 <Line 
                   type="monotone" 
                   dataKey="sohPredicted" 
-                  stroke="#6EE7B7" 
+                  stroke="#DC2626" 
                   name="Predicted SOH (%)" 
                   strokeWidth={2}
                   connectNulls={true}
