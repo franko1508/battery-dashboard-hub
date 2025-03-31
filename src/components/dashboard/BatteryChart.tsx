@@ -164,7 +164,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
               onCheckedChange={() => toggleMetric('soc')}
             />
             <label htmlFor="soc" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              SOC (%)
+              Actual SOC (%)
             </label>
           </div>
           <div className="flex items-center space-x-2">
@@ -174,7 +174,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
               onCheckedChange={() => toggleMetric('soh')}
             />
             <label htmlFor="soh" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              SOH (%)
+              Actual SOH (%)
             </label>
           </div>
           <div className="flex items-center space-x-2">
@@ -260,8 +260,9 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                   type="monotone" 
                   dataKey="soc" 
                   stroke="#60A5FA" 
-                  name="SOC (%)" 
+                  name="Actual SOC (%)" 
                   strokeWidth={2}
+                  connectNulls={true}
                 />
               )}
               {visibleMetrics.soh && (
@@ -269,8 +270,9 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                   type="monotone" 
                   dataKey="soh" 
                   stroke="#34D399" 
-                  name="SOH (%)" 
+                  name="Actual SOH (%)" 
                   strokeWidth={2}
+                  connectNulls={true}
                 />
               )}
               {visibleMetrics.socPredicted && (
@@ -280,6 +282,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                   stroke="#818CF8" 
                   name="Predicted SOC (%)" 
                   strokeWidth={2}
+                  connectNulls={true}
                 />
               )}
               {visibleMetrics.sohPredicted && (
@@ -289,6 +292,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                   stroke="#6EE7B7" 
                   name="Predicted SOH (%)" 
                   strokeWidth={2}
+                  connectNulls={true}
                 />
               )}
             </LineChart>

@@ -19,7 +19,6 @@ export async function fetchBatteryData(): Promise<BatteryData[]> {
     // In a production app, you'd use Query for better performance
     const command = new ScanCommand({
       TableName: AWS_CONFIG.tableName,
-      // You might want to add a filter expression if you need to filter data
     });
 
     const response = await docClient.send(command);
@@ -29,14 +28,18 @@ export async function fetchBatteryData(): Promise<BatteryData[]> {
       return [];
     }
 
-    // Map DynamoDB items to BatteryData format
+    // Map DynamoDB items to BatteryData format using the correct field names
     const batteryData: BatteryData[] = response.Items.map(item => ({
-      // Assuming key_2 is the timestamp field
-      time: item.key_2 || new Date().toISOString(),
-      soc: item.soc || null,
-      soh: item.soh || null,
-      socPredicted: item.socPredicted || null,
-      sohPredicted: item.sohPredicted || null,
+      // Use key_2 or Time for the timestamp field
+      time: item.key_2 || item.Time || new Date().toISOString(),
+      // Use Actual SOC for soc
+      soc: item["Actual SOC"] ? parseFloat(item["Actual SOC"]) : null,
+      // Use Actual SOH for soh
+      soh: item["Actual SOH"] ? parseFloat(item["Actual SOH"]) : null,
+      // Use Predicted SOC for socPredicted
+      socPredicted: item["Predicted SOC"] ? parseFloat(item["Predicted SOC"]) : null,
+      // Use Predicted SOH for sohPredicted
+      sohPredicted: item["Predicted SOH"] ? parseFloat(item["Predicted SOH"]) : null,
     }));
 
     // Sort by timestamp
@@ -54,14 +57,23 @@ export async function fetchBatteryData(): Promise<BatteryData[]> {
 // Fallback function that generates mock data if DynamoDB fetch fails
 export const generateFallbackData = (points: number): BatteryData[] => {
   const now = new Date();
-  const currentData: BatteryData[] = Array.from({ length: points }, (_, i) => ({
-    time: format(subHours(now, points - i - 1), "yyyy-MM-dd'T'HH:mm:ss"),
-    soc: Math.floor(Math.random() * (100 - 60) + 60),
-    soh: Math.floor(Math.random() * (100 - 80) + 80),
-    socPredicted: null,
-    sohPredicted: null,
-  }));
+  // Generate historical data points
+  const currentData: BatteryData[] = Array.from({ length: points }, (_, i) => {
+    const pointTime = format(subHours(now, points - i - 1), "yyyy-MM-dd'T'HH:mm:ss");
+    const socValue = Math.floor(Math.random() * (100 - 60) + 60);
+    const sohValue = Math.floor(Math.random() * (100 - 80) + 80);
+    
+    return {
+      time: pointTime,
+      soc: socValue,
+      soh: sohValue,
+      // Add predictions for the same historical points
+      socPredicted: socValue + (Math.random() * 6 - 3), // slight variation for visual difference
+      sohPredicted: sohValue + (Math.random() * 4 - 2), // slight variation for visual difference
+    };
+  });
 
+  // Generate future predictions (where actual values are null)
   const predictions: BatteryData[] = Array.from({ length: 12 }, (_, i) => ({
     time: format(addHours(now, i + 1), "yyyy-MM-dd'T'HH:mm:ss"),
     soc: null,
