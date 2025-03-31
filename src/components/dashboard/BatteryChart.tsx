@@ -226,7 +226,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                 <Line 
                   type="monotone" 
                   dataKey="socPredicted" 
-                  stroke="#1E40AF" 
+                  stroke="#FFDEE2" 
                   name="Predicted SOC (%)" 
                   strokeWidth={2}
                 />
@@ -272,7 +272,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
                 <Line 
                   type="monotone" 
                   dataKey="socPredicted" 
-                  stroke="#1E40AF" 
+                  stroke="#FFDEE2" 
                   name="Predicted SOC (%)" 
                   strokeWidth={2}
                   connectNulls={true}
