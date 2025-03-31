@@ -19,8 +19,8 @@ const Dashboard = () => {
     queryFn: fetchBatteryData,
     // Fallback to mock data if the query fails
     placeholderData: generateFallbackData(24),
-    onSettled: (data, error) => {
-      if (error) {
+    meta: {
+      onError: (error: Error) => {
         console.error("Failed to fetch data:", error);
         toast({
           title: "Data Fetch Error",
