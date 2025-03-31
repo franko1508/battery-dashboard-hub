@@ -65,17 +65,17 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
           let formattedTime;
 
           if (daysDifference === 0) {
-            // For single day, show hours
+            // For single day, show only hours:minutes
             formattedTime = format(itemDate, 'HH:mm');
           } else if (daysDifference <= 7) {
-            // For a week or less, show day and hour
-            formattedTime = format(itemDate, 'EEE HH:mm');
+            // For a week or less, show only time
+            formattedTime = format(itemDate, 'HH:mm');
           } else if (daysDifference <= 31) {
-            // For a month or less, show date
-            formattedTime = format(itemDate, 'MMM dd');
+            // For a month or less, show only date
+            formattedTime = format(itemDate, 'dd');
           } else {
-            // For longer periods, show month and year
-            formattedTime = format(itemDate, 'MMM yyyy');
+            // For longer periods, show only month
+            formattedTime = format(itemDate, 'MMM');
           }
 
           return {
@@ -91,7 +91,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
         }
       });
     } else {
-      // If no date filter, still provide displayTime
+      // If no date filter, show only hours:minutes
       processedData = processedData.map(item => ({
         ...item,
         displayTime: item.time.includes('T') 
