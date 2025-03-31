@@ -7,7 +7,7 @@ import { BatteryMetricsCards } from '@/components/dashboard/BatteryMetricsCards'
 import { BatteryChart } from '@/components/dashboard/BatteryChart';
 import { BMSSettingsForm } from '@/components/dashboard/BMSSettingsForm';
 import { fetchBatteryData, generateFallbackData } from '@/utils/dynamoDBService';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { logout } = useAuth();
@@ -17,16 +17,18 @@ const Dashboard = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['batteryData'],
     queryFn: fetchBatteryData,
-    onError: (error) => {
-      console.error("Failed to fetch data:", error);
-      toast({
-        title: "Data Fetch Error",
-        description: "Could not load data from DynamoDB. Using fallback data.",
-        variant: "destructive",
-      });
-    },
     // Fallback to mock data if the query fails
     placeholderData: generateFallbackData(24),
+    onSettled: (data, error) => {
+      if (error) {
+        console.error("Failed to fetch data:", error);
+        toast({
+          title: "Data Fetch Error",
+          description: "Could not load data from DynamoDB. Using fallback data.",
+          variant: "destructive",
+        });
+      }
+    },
   });
 
   return (
