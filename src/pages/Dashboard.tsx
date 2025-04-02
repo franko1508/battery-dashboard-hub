@@ -8,6 +8,7 @@ import { BatteryChart } from '@/components/dashboard/BatteryChart';
 import { BMSSettingsForm } from '@/components/dashboard/BMSSettingsForm';
 import { fetchBatteryData, generateFallbackData } from '@/utils/dynamoDBService';
 import { useToast } from "@/hooks/use-toast";
+import { MQTTControl } from '@/components/dashboard/MQTTControl';
 
 const Dashboard = () => {
   const { logout } = useAuth();
@@ -57,7 +58,7 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <BatteryChart data={data || []} />
-          <BMSSettingsForm />
+          <MQTTControl />
         </div>
       </div>
     </div>
