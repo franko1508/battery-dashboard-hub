@@ -1,4 +1,3 @@
-
 /**
  * Real implementation of the MQTT service for browsers using MQTT.js
  * This uses MQTT over WebSockets which is supported by AWS IoT Core
@@ -36,10 +35,13 @@ export const connectMQTT = async (files: MQTTFiles): Promise<mqtt.MqttClient> =>
   if (mqttClient) {
     // If already connected, return the existing client
     if (mqttClient.connected) {
+      console.log('[MQTT] Using existing connection');
       return mqttClient;
     }
     // Otherwise, disconnect the old client
-    mqttClient.end();
+    console.log('[MQTT] Disconnecting previous client');
+    mqttClient.end(true); // Force disconnect
+    mqttClient = null;
   }
 
   if (!files.rootCA || !files.clientCert || !files.privateKey) {
@@ -65,6 +67,7 @@ export const connectMQTT = async (files: MQTTFiles): Promise<mqtt.MqttClient> =>
       protocol: 'wss',
       clean: true,
       reconnectPeriod: 3000,
+      connectTimeout: 10000, // 10 seconds timeout
       // AWS IoT specific connection options
       ca: [rootCA],
       cert: clientCert,
@@ -77,15 +80,34 @@ export const connectMQTT = async (files: MQTTFiles): Promise<mqtt.MqttClient> =>
     // Create and connect the client
     mqttClient = mqtt.connect(brokerUrl, connectOptions);
 
+    // Set up error handlers
+    mqttClient.on('error', (err) => {
+      console.error('[MQTT] Connection error:', err);
+    });
+
+    mqttClient.on('offline', () => {
+      console.log('[MQTT] Client went offline');
+    });
+
+    mqttClient.on('reconnect', () => {
+      console.log('[MQTT] Client trying to reconnect');
+    });
+
     // Return a promise that resolves when connected or rejects on error
     return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Connection timeout after 15 seconds'));
+      }, 15000);
+
       mqttClient!.on('connect', () => {
         console.log('[MQTT] Connected successfully');
+        clearTimeout(timeout);
         resolve(mqttClient!);
       });
 
       mqttClient!.on('error', (err) => {
-        console.error('[MQTT] Connection error:', err);
+        console.error('[MQTT] Connection error during setup:', err);
+        clearTimeout(timeout);
         reject(err);
       });
     });
@@ -114,9 +136,15 @@ export const sendMQTTMessage = async (
     // Connect to MQTT (or get existing connection)
     const client = await connectMQTT(files);
 
-    // Send the message
+    // Send the message with a timeout
     return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Message publish timeout after 10 seconds'));
+      }, 10000);
+
       client.publish(topic, message, { qos: 1 }, (error) => {
+        clearTimeout(timeout);
+        
         if (error) {
           console.error(`[MQTT] Failed to send message: ${error}`);
           reject(error);
@@ -136,8 +164,8 @@ export const sendMQTTMessage = async (
  * Disconnects the MQTT client
  */
 export const disconnectMQTT = (): void => {
-  if (mqttClient && mqttClient.connected) {
-    mqttClient.end();
+  if (mqttClient) {
+    mqttClient.end(true); // Force disconnect
     mqttClient = null;
     console.log('[MQTT] Disconnected');
   }

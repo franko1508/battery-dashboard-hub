@@ -7,10 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { sendMQTTMessage, disconnectMQTT } from '@/utils/mqttService';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 export const MQTTControl = () => {
   const [isEnabled, setIsEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastSentValue, setLastSentValue] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<{
     rootCA: File | null;
     clientCert: File | null;
@@ -51,11 +55,15 @@ export const MQTTControl = () => {
   const handleSendMessage = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      
       // Send the toggle state value (1 for ON, 0 for OFF)
       const value = isEnabled ? "1" : "0";
       
       // Send to the specific topic you mentioned
       await sendMQTTMessage("sdk/test/java", value, files);
+      
+      setLastSentValue(value);
       
       toast({
         title: "Message Sent",
@@ -63,9 +71,12 @@ export const MQTTControl = () => {
       });
     } catch (error) {
       console.error("Failed to send MQTT message:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to send MQTT message";
+      setError(errorMessage);
+      
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send MQTT message",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -86,11 +97,18 @@ export const MQTTControl = () => {
             id="mqtt-toggle" 
             checked={isEnabled}
             onCheckedChange={setIsEnabled}
+            disabled={isLoading}
           />
           <Label htmlFor="mqtt-toggle">
             {isEnabled ? "ON" : "OFF"}
           </Label>
         </div>
+
+        {lastSentValue && (
+          <div className="text-sm text-muted-foreground">
+            Last sent value: <span className="font-medium">{lastSentValue === "1" ? "ON" : "OFF"}</span>
+          </div>
+        )}
 
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Certificate Files</h3>
@@ -103,6 +121,7 @@ export const MQTTControl = () => {
               ref={rootCARef}
               onChange={(e) => handleFileChange(e, 'rootCA')}
               accept=".crt,.pem"
+              disabled={isLoading}
             />
             {files.rootCA && (
               <p className="text-xs text-muted-foreground">{files.rootCA.name}</p>
@@ -117,6 +136,7 @@ export const MQTTControl = () => {
               ref={clientCertRef}
               onChange={(e) => handleFileChange(e, 'clientCert')}
               accept=".pem,.cert"
+              disabled={isLoading}
             />
             {files.clientCert && (
               <p className="text-xs text-muted-foreground">{files.clientCert.name}</p>
@@ -131,6 +151,7 @@ export const MQTTControl = () => {
               ref={privateKeyRef}
               onChange={(e) => handleFileChange(e, 'privateKey')}
               accept=".key"
+              disabled={isLoading}
             />
             {files.privateKey && (
               <p className="text-xs text-muted-foreground">{files.privateKey.name}</p>
@@ -138,11 +159,24 @@ export const MQTTControl = () => {
           </div>
         </div>
 
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <Button 
           onClick={handleSendMessage}
           disabled={!areAllFilesUploaded || isLoading}
         >
-          {isLoading ? "Sending..." : "Send"}
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            "Send"
+          )}
         </Button>
       </CardContent>
     </Card>
