@@ -1,15 +1,16 @@
 
-import { useState, useRef, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { sendMQTTMessage } from '@/utils/mqttService';
+import { sendMQTTMessage, disconnectMQTT } from '@/utils/mqttService';
 
 export const MQTTControl = () => {
   const [isEnabled, setIsEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [files, setFiles] = useState<{
     rootCA: File | null;
     clientCert: File | null;
@@ -25,6 +26,13 @@ export const MQTTControl = () => {
   const rootCARef = useRef<HTMLInputElement>(null);
   const clientCertRef = useRef<HTMLInputElement>(null);
   const privateKeyRef = useRef<HTMLInputElement>(null);
+
+  // Clean up MQTT connection when component unmounts
+  useEffect(() => {
+    return () => {
+      disconnectMQTT();
+    };
+  }, []);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fileType: 'rootCA' | 'clientCert' | 'privateKey') => {
     if (event.target.files && event.target.files.length > 0) {
@@ -42,8 +50,11 @@ export const MQTTControl = () => {
 
   const handleSendMessage = async () => {
     try {
-      // Call the MQTT service with the toggle state value
+      setIsLoading(true);
+      // Send the toggle state value (1 for ON, 0 for OFF)
       const value = isEnabled ? "1" : "0";
+      
+      // Send to the specific topic you mentioned
       await sendMQTTMessage("sdk/test/java", value, files);
       
       toast({
@@ -54,11 +65,15 @@ export const MQTTControl = () => {
       console.error("Failed to send MQTT message:", error);
       toast({
         title: "Error",
-        description: "Failed to send MQTT message. Check console for details.",
+        description: error instanceof Error ? error.message : "Failed to send MQTT message",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const areAllFilesUploaded = files.rootCA && files.clientCert && files.privateKey;
 
   return (
     <Card>
@@ -125,9 +140,9 @@ export const MQTTControl = () => {
 
         <Button 
           onClick={handleSendMessage}
-          disabled={!files.rootCA || !files.clientCert || !files.privateKey}
+          disabled={!areAllFilesUploaded || isLoading}
         >
-          Send
+          {isLoading ? "Sending..." : "Send"}
         </Button>
       </CardContent>
     </Card>
