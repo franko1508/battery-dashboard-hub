@@ -1,3 +1,4 @@
+
 /**
  * Real implementation of the MQTT service for browsers using MQTT.js
  * This uses MQTT over WebSockets which is supported by AWS IoT Core
@@ -51,9 +52,8 @@ export const connectMQTT = async (files: MQTTFiles): Promise<mqtt.MqttClient> =>
     const clientCert = await fileToString(files.clientCert);
     const privateKey = await fileToString(files.privateKey);
 
-    // AWS IoT endpoint - replace with your endpoint
-    // Typically in the format: xxxxxxx-ats.iot.region.amazonaws.com
-    const endpoint = 'your-iot-endpoint.amazonaws.com'; // Replace with your actual endpoint
+    // AWS IoT endpoint - the specific endpoint for your AWS IoT Core
+    const endpoint = 'aatjr0tj00iej-ats.iot.us-east-1.amazonaws.com';
     const clientId = `browser-mqtt-${Math.random().toString(16).substring(2, 10)}`;
 
     // MQTT over WebSockets URL
