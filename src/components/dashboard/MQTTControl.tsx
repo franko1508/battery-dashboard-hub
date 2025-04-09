@@ -6,15 +6,21 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { sendMQTTMessage, disconnectMQTT } from '@/utils/mqttService';
+import { 
+  sendMQTTMessage, 
+  disconnectMQTT, 
+  subscribeToStatus,
+  type ConnectionStatus 
+} from '@/utils/mqttService';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import { Loader2, WifiOff, Wifi, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export const MQTTControl = () => {
   const [isEnabled, setIsEnabled] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [lastSentValue, setLastSentValue] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [files, setFiles] = useState<{
     rootCA: File | null;
     clientCert: File | null;
@@ -31,9 +37,11 @@ export const MQTTControl = () => {
   const clientCertRef = useRef<HTMLInputElement>(null);
   const privateKeyRef = useRef<HTMLInputElement>(null);
 
-  // Clean up MQTT connection when component unmounts
+  // Subscribe to connection status changes
   useEffect(() => {
+    const unsubscribe = subscribeToStatus(setConnectionStatus);
     return () => {
+      unsubscribe();
       disconnectMQTT();
     };
   }, []);
@@ -54,13 +62,13 @@ export const MQTTControl = () => {
 
   const handleSendMessage = async () => {
     try {
-      setIsLoading(true);
+      setIsSending(true);
       setError(null);
       
       // Send the toggle state value (1 for ON, 0 for OFF)
       const value = isEnabled ? "1" : "0";
       
-      // Send to the specific topic you mentioned
+      // Send to the specific topic
       await sendMQTTMessage("sdk/test/java", value, files);
       
       setLastSentValue(value);
@@ -80,16 +88,55 @@ export const MQTTControl = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSending(false);
+    }
+  };
+
+  const getStatusIcon = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case 'connecting':
+        return <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />;
+      case 'reconnecting':
+        return <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />;
+      case 'error':
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      case 'disconnected':
+      default:
+        return <WifiOff className="h-4 w-4 text-slate-400" />;
+    }
+  };
+
+  const getStatusText = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return "Connected to AWS IoT";
+      case 'connecting':
+        return "Connecting...";
+      case 'reconnecting':
+        return "Reconnecting...";
+      case 'error':
+        return "Connection error";
+      case 'disconnected':
+      default:
+        return "Disconnected";
     }
   };
 
   const areAllFilesUploaded = files.rootCA && files.clientCert && files.privateKey;
+  const isDisabled = isSending || connectionStatus === 'connecting' || connectionStatus === 'reconnecting';
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>MQTT Control</CardTitle>
+        <CardTitle className="flex items-center justify-between">
+          MQTT Control
+          <div className="flex items-center gap-2 text-sm font-normal">
+            {getStatusIcon()}
+            <span>{getStatusText()}</span>
+          </div>
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center space-x-2">
@@ -97,7 +144,7 @@ export const MQTTControl = () => {
             id="mqtt-toggle" 
             checked={isEnabled}
             onCheckedChange={setIsEnabled}
-            disabled={isLoading}
+            disabled={isDisabled}
           />
           <Label htmlFor="mqtt-toggle">
             {isEnabled ? "ON" : "OFF"}
@@ -121,7 +168,7 @@ export const MQTTControl = () => {
               ref={rootCARef}
               onChange={(e) => handleFileChange(e, 'rootCA')}
               accept=".crt,.pem"
-              disabled={isLoading}
+              disabled={isDisabled}
             />
             {files.rootCA && (
               <p className="text-xs text-muted-foreground">{files.rootCA.name}</p>
@@ -136,7 +183,7 @@ export const MQTTControl = () => {
               ref={clientCertRef}
               onChange={(e) => handleFileChange(e, 'clientCert')}
               accept=".pem,.cert"
-              disabled={isLoading}
+              disabled={isDisabled}
             />
             {files.clientCert && (
               <p className="text-xs text-muted-foreground">{files.clientCert.name}</p>
@@ -151,7 +198,7 @@ export const MQTTControl = () => {
               ref={privateKeyRef}
               onChange={(e) => handleFileChange(e, 'privateKey')}
               accept=".key"
-              disabled={isLoading}
+              disabled={isDisabled}
             />
             {files.privateKey && (
               <p className="text-xs text-muted-foreground">{files.privateKey.name}</p>
@@ -167,17 +214,23 @@ export const MQTTControl = () => {
 
         <Button 
           onClick={handleSendMessage}
-          disabled={!areAllFilesUploaded || isLoading}
+          disabled={!areAllFilesUploaded || isDisabled}
+          className="w-full"
         >
-          {isLoading ? (
+          {isSending ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Sending...
             </>
           ) : (
             "Send"
           )}
         </Button>
+
+        <div className="text-xs text-muted-foreground">
+          <p>Connected to: aatjr0tj00iej-ats.iot.us-east-1.amazonaws.com</p>
+          <p>Topic: sdk/test/java</p>
+        </div>
       </CardContent>
     </Card>
   );

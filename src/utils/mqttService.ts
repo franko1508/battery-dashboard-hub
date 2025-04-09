@@ -1,3 +1,4 @@
+
 /**
  * Real implementation of the MQTT service for browsers using MQTT.js
  * This uses MQTT over WebSockets which is supported by AWS IoT Core
@@ -10,6 +11,18 @@ type MQTTFiles = {
   clientCert: File | null;
   privateKey: File | null;
 };
+
+// Connection status type for better status tracking
+export type ConnectionStatus = 
+  | 'disconnected'
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting'
+  | 'error';
+
+// Current status and listeners
+let currentStatus: ConnectionStatus = 'disconnected';
+const statusListeners: ((status: ConnectionStatus) => void)[] = [];
 
 /**
  * Converts a File object to a string
@@ -27,6 +40,32 @@ const fileToString = async (file: File): Promise<string> => {
 
 // MQTT client instance that can be reused
 let mqttClient: mqtt.MqttClient | null = null;
+
+/**
+ * Update connection status and notify listeners
+ */
+const updateStatus = (status: ConnectionStatus): void => {
+  currentStatus = status;
+  statusListeners.forEach(listener => listener(status));
+  console.log(`[MQTT] Status: ${status}`);
+};
+
+/**
+ * Subscribe to connection status changes
+ */
+export const subscribeToStatus = (callback: (status: ConnectionStatus) => void): () => void => {
+  statusListeners.push(callback);
+  // Immediately call with current status
+  callback(currentStatus);
+  
+  // Return unsubscribe function
+  return () => {
+    const index = statusListeners.indexOf(callback);
+    if (index !== -1) {
+      statusListeners.splice(index, 1);
+    }
+  };
+};
 
 /**
  * Connects to AWS IoT Core using the provided certificates
@@ -47,6 +86,8 @@ export const connectMQTT = async (files: MQTTFiles): Promise<mqtt.MqttClient> =>
   if (!files.rootCA || !files.clientCert || !files.privateKey) {
     throw new Error('All certificate files are required');
   }
+
+  updateStatus('connecting');
 
   try {
     // Convert the certificate files to strings
@@ -80,27 +121,35 @@ export const connectMQTT = async (files: MQTTFiles): Promise<mqtt.MqttClient> =>
     // Create and connect the client
     mqttClient = mqtt.connect(brokerUrl, connectOptions);
 
-    // Set up error handlers
+    // Set up event handlers
     mqttClient.on('error', (err) => {
       console.error('[MQTT] Connection error:', err);
+      updateStatus('error');
     });
 
     mqttClient.on('offline', () => {
       console.log('[MQTT] Client went offline');
+      updateStatus('disconnected');
     });
 
     mqttClient.on('reconnect', () => {
       console.log('[MQTT] Client trying to reconnect');
+      updateStatus('reconnecting');
+    });
+
+    mqttClient.on('connect', () => {
+      console.log('[MQTT] Connected successfully');
+      updateStatus('connected');
     });
 
     // Return a promise that resolves when connected or rejects on error
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
+        updateStatus('error');
         reject(new Error('Connection timeout after 15 seconds'));
       }, 15000);
 
       mqttClient!.on('connect', () => {
-        console.log('[MQTT] Connected successfully');
         clearTimeout(timeout);
         resolve(mqttClient!);
       });
@@ -113,6 +162,7 @@ export const connectMQTT = async (files: MQTTFiles): Promise<mqtt.MqttClient> =>
     });
   } catch (error) {
     console.error('[MQTT] Setup error:', error);
+    updateStatus('error');
     throw error;
   }
 };
@@ -127,6 +177,7 @@ export const sendMQTTMessage = async (
 ): Promise<void> => {
   try {
     console.log(`[MQTT] Preparing to send message to topic: ${topic}`);
+    console.log(`[MQTT] Message: ${message}`);
     console.log(`[MQTT] Files provided:`, {
       rootCA: files.rootCA?.name || 'None',
       clientCert: files.clientCert?.name || 'None',
@@ -161,12 +212,20 @@ export const sendMQTTMessage = async (
 };
 
 /**
+ * Gets the current connection status
+ */
+export const getConnectionStatus = (): ConnectionStatus => {
+  return currentStatus;
+};
+
+/**
  * Disconnects the MQTT client
  */
 export const disconnectMQTT = (): void => {
   if (mqttClient) {
     mqttClient.end(true); // Force disconnect
     mqttClient = null;
+    updateStatus('disconnected');
     console.log('[MQTT] Disconnected');
   }
 };
