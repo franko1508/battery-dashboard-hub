@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { uploadControlState } from '@/utils/dynamoDBService';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { AWS_CONFIG } from '@/utils/awsConfig';
 
 // Rename component to better reflect its new purpose
 export const MQTTControl = () => {
