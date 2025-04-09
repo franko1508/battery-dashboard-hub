@@ -1,5 +1,6 @@
 
-import React, { createContext, useContext, useState } from 'react';
+import * as React from 'react';
+import { createContext, useContext, useState } from 'react';
 import { toast } from 'sonner';
 
 interface AuthContextType {
