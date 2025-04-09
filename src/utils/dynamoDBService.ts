@@ -1,6 +1,6 @@
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { BatteryData } from "@/types/battery";
 import { AWS_CONFIG } from "./awsConfig";
 import { format, parseISO, subHours, addHours } from "date-fns";
@@ -84,3 +84,41 @@ export const generateFallbackData = (points: number): BatteryData[] => {
 
   return [...currentData, ...predictions];
 };
+
+/**
+ * Upload control state to DynamoDB
+ * @param isEnabled Boolean indicating if the control is ON (true) or OFF (false)
+ * @returns Promise that resolves when upload is complete
+ */
+export async function uploadControlState(isEnabled: boolean): Promise<void> {
+  try {
+    const timestamp = new Date().toISOString();
+    const value = isEnabled ? "1" : "0";
+    
+    console.log(`[DynamoDB] Uploading control state: ${value} at ${timestamp}`);
+    
+    // Create the item to be stored in DynamoDB
+    const item = {
+      // Use timestamp as a unique identifier
+      id: timestamp,
+      timestamp: timestamp,
+      controlValue: value,
+      // Add any additional metadata you want to store
+      source: "web-dashboard"
+    };
+    
+    // Using PutCommand to insert a new item
+    const command = new PutCommand({
+      TableName: "UserControl", // Using the UserControl table
+      Item: item,
+    });
+    
+    await docClient.send(command);
+    console.log("[DynamoDB] Control state uploaded successfully");
+    
+    return;
+  } catch (error) {
+    console.error("[DynamoDB] Error uploading control state:", error);
+    throw error;
+  }
+}

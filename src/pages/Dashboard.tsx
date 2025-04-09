@@ -9,6 +9,7 @@ import { BMSSettingsForm } from '@/components/dashboard/BMSSettingsForm';
 import { fetchBatteryData, generateFallbackData } from '@/utils/dynamoDBService';
 import { useToast } from "@/hooks/use-toast";
 import { MQTTControl } from '@/components/dashboard/MQTTControl';
+import { AWS_CONFIG } from '@/utils/awsConfig';
 
 const Dashboard = () => {
   const { logout } = useAuth();
