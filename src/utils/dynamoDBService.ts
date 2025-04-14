@@ -1,4 +1,3 @@
-
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { BatteryData } from "@/types/battery";
@@ -13,10 +12,19 @@ const client = new DynamoDBClient({
 
 const docClient = DynamoDBDocumentClient.from(client);
 
+// Helper function to parse the timestamp format "Wed Feb 7 16:34:30 EST 2024"
+const parseTimestamp = (timestamp: string): Date => {
+  // If it's already in ISO format, use parseISO
+  if (timestamp.includes('T')) {
+    return parseISO(timestamp);
+  }
+  
+  // Parse the custom format
+  return new Date(timestamp);
+};
+
 export async function fetchBatteryData(): Promise<BatteryData[]> {
   try {
-    // Using Scan operation since we're getting all items
-    // In a production app, you'd use Query for better performance
     const command = new ScanCommand({
       TableName: AWS_CONFIG.tableName,
     });
@@ -28,24 +36,19 @@ export async function fetchBatteryData(): Promise<BatteryData[]> {
       return [];
     }
 
-    // Map DynamoDB items to BatteryData format using the correct field names
+    // Map DynamoDB items to BatteryData format
     const batteryData: BatteryData[] = response.Items.map(item => ({
-      // Use key_2 or Time for the timestamp field
       time: item.key_2 || item.Time || new Date().toISOString(),
-      // Use Actual SOC for soc
       soc: item["Actual SOC"] ? parseFloat(item["Actual SOC"]) : null,
-      // Use Actual SOH for soh
       soh: item["Actual SOH"] ? parseFloat(item["Actual SOH"]) : null,
-      // Use Predicted SOC for socPredicted
       socPredicted: item["Predicted SOC"] ? parseFloat(item["Predicted SOC"]) : null,
-      // Use Predicted SOH for sohPredicted
       sohPredicted: item["Predicted SOH"] ? parseFloat(item["Predicted SOH"]) : null,
     }));
 
-    // Sort by timestamp
+    // Sort by timestamp, using the custom parser
     return batteryData.sort((a, b) => {
-      const dateA = new Date(a.time).getTime();
-      const dateB = new Date(b.time).getTime();
+      const dateA = parseTimestamp(a.time).getTime();
+      const dateB = parseTimestamp(b.time).getTime();
       return dateA - dateB;
     });
   } catch (error) {
