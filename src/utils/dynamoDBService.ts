@@ -13,6 +13,10 @@ const client = new DynamoDBClient({
 
 const docClient = DynamoDBDocumentClient.from(client);
 
+// Table names for different data sources
+const PREDICTIONS_TABLE = "Predictions_1";
+const RAW_DATA_TABLE = "Raw_Data_SeniorDesign";
+
 // Define interfaces for the raw data structure
 export interface RawBatteryData {
   time: string;
@@ -65,10 +69,11 @@ function parseCustomTimestamp(timestamp: string): Date {
 
 export async function fetchBatteryData(): Promise<BatteryData[]> {
   try {
-    // Using Scan operation since we're getting all items
-    // In a production app, you'd use Query for better performance
+    console.log(`Fetching battery metrics from ${PREDICTIONS_TABLE} table`);
+    
+    // Using Scan operation to get all items from the Predictions_1 table
     const command = new ScanCommand({
-      TableName: AWS_CONFIG.tableName,
+      TableName: PREDICTIONS_TABLE,
     });
 
     const response = await docClient.send(command);
@@ -107,9 +112,11 @@ export async function fetchBatteryData(): Promise<BatteryData[]> {
 // Function to fetch data from the Raw_Data_SeniorDesign table
 export async function fetchRawBatteryData(): Promise<RawBatteryData[]> {
   try {
+    console.log(`Fetching raw battery data from ${RAW_DATA_TABLE} table`);
+    
     // Using Scan operation to get all items from the Raw_Data_SeniorDesign table
     const command = new ScanCommand({
-      TableName: "Raw_Data_SeniorDesign",
+      TableName: RAW_DATA_TABLE,
     });
 
     const response = await docClient.send(command);
