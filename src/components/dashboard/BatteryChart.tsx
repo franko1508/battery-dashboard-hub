@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
-import { differenceInDays, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, differenceInDays, isWithinInterval, startOfDay, endOfDay, parseISO } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -50,7 +50,7 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
 
       processedData = data.filter(item => {
         try {
-          const itemDate = new Date(item.time);
+          const itemDate = parseISO(item.time);
           return isWithinInterval(itemDate, { start: from, end: to });
         } catch (e) {
           console.error("Invalid date format:", item.time, e);
@@ -60,17 +60,17 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
 
       processedData = processedData.map(item => {
         try {
-          const itemDate = new Date(item.time);
+          const itemDate = parseISO(item.time);
           let formattedTime;
 
           if (daysDifference === 0) {
-            formattedTime = itemDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            formattedTime = format(itemDate, 'HH:mm');
           } else if (daysDifference <= 7) {
-            formattedTime = itemDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            formattedTime = format(itemDate, 'HH:mm');
           } else if (daysDifference <= 31) {
-            formattedTime = itemDate.getDate().toString();
+            formattedTime = format(itemDate, 'dd');
           } else {
-            formattedTime = itemDate.toLocaleDateString('en-US', { month: 'short' });
+            formattedTime = format(itemDate, 'MMM');
           }
 
           return {
@@ -88,7 +88,9 @@ export const BatteryChart = ({ data }: BatteryChartProps) => {
     } else {
       processedData = processedData.map(item => ({
         ...item,
-        displayTime: new Date(item.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        displayTime: item.time.includes('T') 
+          ? format(parseISO(item.time), 'HH:mm') 
+          : item.time,
       }));
     }
 
