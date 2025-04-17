@@ -198,7 +198,7 @@ export const generateRawFallbackData = (points: number): RawBatteryData[] => {
     return {
       time: pointTime,
       packSOC: Math.floor(Math.random() * (100 - 60) + 60),
-      packVoltage: Math.floor(Math.random() * (48 - 36) + 36) + Math.random().toFixed(1),
+      packVoltage: Math.floor(Math.random() * (48 - 36) + 36) + Math.random(), // Fix: Return number instead of string
       chargerSafetyActive: Math.random() > 0.5 ? 1 : 0,
       dischargeEnableActive: Math.random() > 0.5 ? 1 : 0,
       highestTemperature: Math.floor(Math.random() * (35 - 25) + 25),
